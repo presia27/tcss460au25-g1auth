@@ -5,7 +5,7 @@
     "main": "dist/app.js",
     "scripts": {
         "postinstall": "tsc",
-        "build": "tsc -p .",
+        "build": "tsc -p .  && tsc-alias",
         "dev": "nodemon --exec ts-node -r tsconfig-paths/register -r dotenv/config src/index.ts",
         "start:full": "npm run docker:up && npm run dev",
         "local": "nodemon --exec ts-node -r tsconfig-paths/register -r dotenv/config src/index.ts",
