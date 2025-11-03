@@ -257,3 +257,134 @@ export const validatePagination = [
         .toInt(),
     handleValidationErrors
 ];
+
+
+
+
+// ============================================
+// ADMIN VALIDATION
+// ============================================
+
+/**
+ * Admin user creation validation
+ * Similar to public registration but includes role field
+ */
+export const validateAdminCreateUser = [
+    body('firstname')
+        .notEmpty()
+        .withMessage('First name is required')
+        .isLength({ min: 1, max: 100 })
+        .withMessage('First name must be between 1 and 100 characters')
+        .trim(),
+    body('lastname')
+        .notEmpty()
+        .withMessage('Last name is required')
+        .isLength({ min: 1, max: 100 })
+        .withMessage('Last name must be between 1 and 100 characters')
+        .trim(),
+    body('email')
+        .notEmpty()
+        .withMessage('Email is required')
+        .isEmail()
+        .withMessage('Must be a valid email address')
+        .normalizeEmail(),
+    body('username')
+        .notEmpty()
+        .withMessage('Username is required')
+        .isLength({ min: 3, max: 50 })
+        .withMessage('Username must be between 3 and 50 characters')
+        .matches(/^[a-zA-Z0-9_-]+$/)
+        .withMessage('Username can only contain letters, numbers, underscores, and hyphens')
+        .trim(),
+    body('password')
+        .notEmpty()
+        .withMessage('Password is required')
+        .isLength({ min: 8, max: 128 })
+        .withMessage('Password must be between 8 and 128 characters'),
+    body('phone')
+        .optional()
+        .matches(/\d{10,}/)
+        .withMessage('Phone number must contain at least 10 digits'),
+    body('role')
+        .notEmpty()
+        .withMessage('Role is required')
+        .isInt({ min: 1, max: 5 })
+        .withMessage('Role must be an integer between 1 and 5')
+        .toInt(),
+    handleValidationErrors
+];
+
+/**
+ * User update validation (admin)
+ * All fields are optional - only provided fields will be updated
+ */
+export const validateUserUpdate = [
+    body('firstname')
+        .optional()
+        .isLength({ min: 1, max: 100 })
+        .withMessage('First name must be between 1 and 100 characters')
+        .trim(),
+    body('lastname')
+        .optional()
+        .isLength({ min: 1, max: 100 })
+        .withMessage('Last name must be between 1 and 100 characters')
+        .trim(),
+    body('username')
+        .optional()
+        .isLength({ min: 3, max: 50 })
+        .withMessage('Username must be between 3 and 50 characters')
+        .matches(/^[a-zA-Z0-9_-]+$/)
+        .withMessage('Username can only contain letters, numbers, underscores, and hyphens')
+        .trim(),
+    body('email')
+        .optional()
+        .isEmail()
+        .withMessage('Must be a valid email address')
+        .normalizeEmail(),
+    body('phone')
+        .optional()
+        .matches(/\d{10,}/)
+        .withMessage('Phone number must contain at least 10 digits'),
+    body('account_status')
+        .optional()
+        .isIn(['pending', 'active', 'suspended', 'locked', 'deleted'])
+        .withMessage('Status must be pending, active, suspended, locked, or deleted'),
+    body('email_verified')
+        .optional()
+        .isBoolean()
+        .withMessage('Email verified must be a boolean')
+        .toBoolean(),
+    body('phone_verified')
+        .optional()
+        .isBoolean()
+        .withMessage('Phone verified must be a boolean')
+        .toBoolean(),
+    handleValidationErrors
+];
+
+/**
+ * Admin password reset validation
+ * Used when admin resets another user's password
+ */
+export const validateAdminPasswordReset = [
+    body('password')
+        .notEmpty()
+        .withMessage('Password is required')
+        .isLength({ min: 8, max: 128 })
+        .withMessage('Password must be between 8 and 128 characters'),
+    handleValidationErrors
+];
+
+/**
+ * Role change validation
+ * Validates the new role value
+ */
+export const validateRoleChange = [
+    body('role')
+        .notEmpty()
+        .withMessage('Role is required')
+        .isInt({ min: 1, max: 5 })
+        .withMessage('Role must be an integer between 1 and 5')
+        .toInt(),
+    handleValidationErrors
+];

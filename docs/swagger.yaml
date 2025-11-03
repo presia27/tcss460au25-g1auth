@@ -51,6 +51,11 @@ tags:
     description: Email and phone verification
   - name: Testing
     description: Development and testing endpoints
+  - name: Admin - Users
+    description: User management endpoints (Moderator+ access)
+  - name: Admin - Statistics
+    description: Dashboard and analytics endpoints (Moderator+ access)
+
 
 paths:
   # ===== PUBLIC AUTH ENDPOINTS =====
@@ -514,6 +519,634 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+
+  # ===== ADMIN ENDPOINTS =====
+  /admin/users/stats/dashboard:
+    get:
+      tags:
+        - Admin - Statistics
+      summary: Get dashboard statistics
+      description: |
+        Retrieves comprehensive dashboard statistics including user counts, role distribution, and recent registrations.
+        
+        **Required Role:** Moderator (2+)
+      operationId: getDashboardStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/DashboardStats'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users/search:
+    get:
+      tags:
+        - Admin - Users
+      summary: Search users
+      description: |
+        Search users by firstname, lastname, username, or email. Returns up to 50 results.
+        
+        **Required Role:** Moderator (2+)
+      operationId: searchUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query (searches name, username, email)
+          example: john
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 5
+                  query:
+                    type: string
+                    example: john
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin - Users
+      summary: List all users
+      description: |
+        Retrieve paginated list of users with optional filters.
+        
+        **Required Role:** Moderator (2+)
+        
+        **Filters Available:**
+        - Role (1-5)
+        - Status (pending, active, suspended, locked, deleted)
+        - Verification status (email, phone)
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Results per page
+        - name: role
+          in: query
+          schema:
+            type: integer
+            enum: [1, 2, 3, 4, 5]
+          description: Filter by role
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, suspended, locked, deleted]
+          description: Filter by account status
+        - name: verified
+          in: query
+          schema:
+            type: string
+            enum: [email, phone]
+          description: Filter by verification status
+      responses:
+        '200':
+          description: User list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    description: Total number of users matching filters
+                    example: 150
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 50
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users/create:
+    post:
+      tags:
+        - Admin - Users
+      summary: Create new user
+      description: |
+        Create a new user with specified role.
+        
+        **Required Role:** Moderator (2+)
+        
+        **Role Hierarchy Rule:** You can only create users with roles ≤ your own role.
+        
+        **Examples:**
+        - Moderator (2) can create: User (1), Moderator (2)
+        - Admin (3) can create: User (1), Moderator (2), Admin (3)
+        - Cannot create users with higher roles than yourself
+      operationId: createUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            examples:
+              createBasicUser:
+                summary: Create basic user
+                value:
+                  firstname: John
+                  lastname: Doe
+                  username: johndoe
+                  email: john@example.com
+                  password: SecurePass123!
+                  phone: "1234567890"
+                  role: 1
+              createModerator:
+                summary: Create moderator
+                value:
+                  firstname: Jane
+                  lastname: Smith
+                  username: janesmith
+                  email: jane@example.com
+                  password: SecurePass456!
+                  phone: "0987654321"
+                  role: 2
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User created successfully
+                  data:
+                    $ref: '#/components/schemas/AdminUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Cannot assign role higher than your own
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Cannot assign role higher than your own
+                  yourRole:
+                    type: string
+                    example: Moderator
+                  attemptedRole:
+                    type: string
+                    example: Admin
+        '409':
+          description: Conflict - Username or email already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Username or email already exists
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users/{id}:
+    get:
+      tags:
+        - Admin - Users
+      summary: Get user by ID
+      description: |
+        Retrieve detailed information about a specific user.
+        
+        **Required Role:** Moderator (2+)
+      operationId: getUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/AdminUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      tags:
+        - Admin - Users
+      summary: Update user information
+      description: |
+        Update user account information.
+        
+        **Required Role:** Moderator (2+)
+        
+        **Restrictions:**
+        - Cannot modify your own account (use user endpoints instead)
+        - All fields are optional - only provided fields will be updated
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            examples:
+              updateName:
+                summary: Update name only
+                value:
+                  firstname: Jane
+                  lastname: Smith
+              updateStatus:
+                summary: Suspend account
+                value:
+                  account_status: suspended
+              updateVerification:
+                summary: Manually verify email
+                value:
+                  email_verified: true
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User updated successfully
+                  data:
+                    $ref: '#/components/schemas/AdminUserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Cannot modify your own account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Cannot modify your own account through admin endpoints. Use the user profile endpoints to modify your own account
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Admin - Users
+      summary: Soft delete user
+      description: |
+        Soft delete a user (sets account_status to 'deleted').
+        
+        **Required Role:** Moderator (2+)
+        
+        **Restrictions:**
+        - Cannot delete your own account
+        - User data is preserved for audit purposes
+        - Can be restored by changing status back to 'active'
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User deleted successfully
+                  data:
+                    type: object
+                    properties:
+                      account_id:
+                        type: integer
+                        example: 123
+                      username:
+                        type: string
+                        example: johndoe
+                      email:
+                        type: string
+                        example: john@example.com
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Cannot delete your own account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Cannot modify your own account through admin endpoints. Use the user profile endpoints to modify your own account
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users/{id}/password:
+    put:
+      tags:
+        - Admin - Users
+      summary: Reset user password
+      description: |
+        Administrative password reset (no old password required).
+        
+        **Required Role:** Admin (3+)
+        
+        **Restrictions:**
+        - Cannot reset your own password (use password change endpoint)
+        - Higher privilege requirement than other admin operations
+      operationId: resetUserPassword
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                  description: New password for the user
+            examples:
+              resetPassword:
+                value:
+                  password: NewSecurePass789!
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password reset successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Requires Admin role or cannot modify own password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Cannot modify your own account through admin endpoints. Use the user profile endpoints to modify your own account
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users/{id}/role:
+    put:
+      tags:
+        - Admin - Users
+      summary: Change user role
+      description: |
+        Change a user's role level.
+        
+        **Required Role:** Moderator (2+)
+        
+        **Role Hierarchy Rules:**
+        - You can only assign roles ≤ your own role
+        - Cannot modify your own role
+        
+        **Examples:**
+        - Moderator (2) can assign: User (1), Moderator (2)
+        - Admin (3) can assign: User (1), Moderator (2), Admin (3)
+        - SuperAdmin (4) can assign: User (1), Moderator (2), Admin (3), SuperAdmin (4)
+      operationId: changeUserRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: integer
+                  enum: [1, 2, 3, 4, 5]
+                  description: New role level
+            examples:
+              promoteToModerator:
+                summary: Promote to Moderator
+                value:
+                  role: 2
+              demoteToUser:
+                summary: Demote to User
+                value:
+                  role: 1
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Role updated successfully
+                  data:
+                    type: object
+                    properties:
+                      account_id:
+                        type: integer
+                        example: 123
+                      username:
+                        type: string
+                        example: johndoe
+                      email:
+                        type: string
+                        example: john@example.com
+                      new_role:
+                        type: integer
+                        example: 2
+                      role_name:
+                        type: string
+                        example: Moderator
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Cannot assign role higher than your own or modify your own role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Cannot assign role higher than your own
+                  yourRole:
+                    type: string
+                    example: Moderator
+                  attemptedRole:
+                    type: string
+                    example: Admin
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+
 components:
   # ===== SECURITY SCHEMES =====
   securitySchemes:
@@ -739,6 +1372,203 @@ components:
         totalPages:
           type: integer
           example: 8
+    AdminUserResponse:
+      type: object
+      properties:
+        account_id:
+          type: integer
+          example: 1
+        firstname:
+          type: string
+          example: John
+        lastname:
+          type: string
+          example: Doe
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        email_verified:
+          type: boolean
+          example: true
+        phone:
+          type: string
+          nullable: true
+          example: "1234567890"
+        phone_verified:
+          type: boolean
+          example: false
+        account_role:
+          type: integer
+          enum: [1, 2, 3, 4, 5]
+          description: |
+            Role level:
+            * 1 - User
+            * 2 - Moderator
+            * 3 - Admin
+            * 4 - SuperAdmin
+            * 5 - Owner
+          example: 1
+        role_name:
+          type: string
+          enum: [User, Moderator, Admin, SuperAdmin, Owner]
+          example: User
+        account_status:
+          type: string
+          enum: [pending, active, suspended, locked, deleted]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:30:00Z"
+
+    CreateUserRequest:
+      type: object
+      required:
+        - firstname
+        - lastname
+        - username
+        - email
+        - password
+        - role
+      properties:
+        firstname:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: John
+        lastname:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Doe
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          example: SecurePass123!
+        phone:
+          type: string
+          pattern: '^\d{10,}$'
+          example: "1234567890"
+        role:
+          type: integer
+          enum: [1, 2, 3, 4, 5]
+          description: User role (must be ≤ your own role)
+          example: 1
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstname:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Jane
+        lastname:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Smith
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: janesmith
+        email:
+          type: string
+          format: email
+          example: jane@example.com
+        phone:
+          type: string
+          pattern: '^\d{10,}$'
+          example: "0987654321"
+        account_status:
+          type: string
+          enum: [pending, active, suspended, locked, deleted]
+          example: active
+        email_verified:
+          type: boolean
+          example: true
+        phone_verified:
+          type: boolean
+          example: false
+
+    DashboardStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          description: Total number of users in system
+          example: 150
+        activeUsers:
+          type: integer
+          description: Users with active status
+          example: 145
+        deletedUsers:
+          type: integer
+          description: Soft-deleted users
+          example: 3
+        suspendedUsers:
+          type: integer
+          description: Suspended users
+          example: 2
+        verifiedEmails:
+          type: integer
+          description: Users with verified emails
+          example: 120
+        verifiedPhones:
+          type: integer
+          description: Users with verified phones
+          example: 80
+        usersByRole:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: integer
+                example: 1
+              role_name:
+                type: string
+                example: User
+              count:
+                type: integer
+                example: 140
+        recentRegistrations:
+          type: object
+          properties:
+            today:
+              type: integer
+              description: Registrations today
+              example: 3
+            thisWeek:
+              type: integer
+              description: Registrations in last 7 days
+              example: 15
+            thisMonth:
+              type: integer
+              description: Registrations in last 30 days
+              example: 45
 
   # ===== RESPONSES =====
   responses:
