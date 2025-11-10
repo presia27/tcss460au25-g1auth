@@ -58,10 +58,11 @@ export const canManageRole = (
         });
     }
 
-    const targetRole = request.body.role || request.body.account_role;
+    const targetRole = Number(request.body.role ?? request.body.account_role);
 
     // If no role is being set/modified, continue
-    if (targetRole === undefined) {
+    //Number(undefined) returns NaN
+    if (isNaN(targetRole)) {
         return next();
     }
 
@@ -180,5 +181,4 @@ export const requireAdminForUserModification = [
     requireRole(ROLES.MODERATOR),
     preventSelfModification,
     canModifyTargetUser,  // Check target user's role
-    canManageRole         // Still check body role if present (for role changes)
 ];

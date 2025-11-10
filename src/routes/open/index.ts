@@ -1,6 +1,14 @@
 import express, { Router } from 'express';
 import { AuthController, VerificationController } from '@controllers';
 import { docsRoutes } from './docs';
+import {
+    validateLogin,
+    validateRegister,
+    validatePasswordResetRequest,
+    validatePasswordReset,
+    validateEmailToken,
+    checkToken
+} from '@middleware';
 
 const openRoutes: Router = express.Router();
 
@@ -9,32 +17,32 @@ const openRoutes: Router = express.Router();
 /**
  * Authenticate user and return JWT token
  * POST /auth/login
- * TODO: Add validation middleware (validateLogin)
+ * Validates: email format, password presence
  */
-openRoutes.post('/auth/login', AuthController.login);
+openRoutes.post('/auth/login', validateLogin, AuthController.login);
 
 /**
  * Register a new user (always creates basic user with role 1)
  * POST /auth/register
- * TODO: Add validation middleware (validateRegister)
+ * Validates: firstname, lastname, email, username, password, phone
  */
-openRoutes.post('/auth/register', AuthController.register);
+openRoutes.post('/auth/register', validateRegister, AuthController.register);
 
 // ===== PASSWORD RESET ROUTES =====
 
 /**
  * Request password reset (requires verified email)
  * POST /auth/password/reset-request
- * TODO: Add validation middleware (validatePasswordResetRequest)
+ * Validates: email format
  */
-openRoutes.post('/auth/password/reset-request', AuthController.requestPasswordReset);
+openRoutes.post('/auth/password/reset-request', validatePasswordResetRequest, AuthController.requestPasswordReset);
 
 /**
  * Reset password with token
  * POST /auth/password/reset
- * TODO: Add validation middleware (validatePasswordReset)
+ * Validates: token presence, password length
  */
-openRoutes.post('/auth/password/reset', AuthController.resetPassword);
+openRoutes.post('/auth/password/reset', validatePasswordReset, AuthController.resetPassword);
 
 // ===== VERIFICATION ROUTES =====
 
@@ -47,9 +55,9 @@ openRoutes.get('/auth/verify/carriers', VerificationController.getCarriers);
 /**
  * Verify email token (can be accessed via link without authentication)
  * GET /auth/verify/email/confirm?token=xxx
- * TODO: Add query validation for token parameter
+ * Validates: token query parameter
  */
-openRoutes.get('/auth/verify/email/confirm', VerificationController.confirmEmailVerification);
+openRoutes.get('/auth/verify/email/confirm', validateEmailToken, VerificationController.confirmEmailVerification);
 
 // ===== TESTING ROUTES =====
 
@@ -57,7 +65,7 @@ openRoutes.get('/auth/verify/email/confirm', VerificationController.confirmEmail
  * Simple test endpoint (no authentication required)
  * GET /jwt_test
  */
-openRoutes.get('/jwt_test', AuthController.testJWT);
+openRoutes.get('/jwt_test', checkToken, AuthController.testJWT);
 
 // ===== DOCUMENTATION ROUTES =====
 

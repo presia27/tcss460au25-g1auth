@@ -81,7 +81,8 @@ export class AuthController {
             },
             response,
             'User registration successful',
-            'Registration failed'
+            'Registration failed',
+            201
         );
     }
 
@@ -354,12 +355,11 @@ export class AuthController {
 
     /**
      * Simple test endpoint (no authentication required)
+     * TODO: Refactor to send correct results instead of being a health route... maybe have this be just 200 is valid and then add the check token middleware...
      */
     static async testJWT(request: IJwtRequest, response: Response): Promise<void> {
         response.status(200).json({
-            message: 'Hello World! API is working correctly.',
-            timestamp: new Date().toISOString(),
-            service: 'TCSS-460-auth-squared'
+            message: 'Your token is valid'
         });
     }
 }
