@@ -52,12 +52,13 @@ export const executeTransactionWithResponse = async <T>(
     operation: (client: PoolClient) => Promise<T>,
     response: Response,
     successMessage?: string,
-    errorMessage: string = 'Transaction failed'
+    errorMessage: string = 'Transaction failed',
+    successStatus: number = 200
 ): Promise<void> => {
     const result = await withTransaction(operation);
 
     if (result.success) {
-        sendSuccess(response, result.data, successMessage);
+        sendSuccess(response, result.data, successMessage, successStatus);
     } else {
         console.error('Transaction error:', result.error);
         sendError(response, 500, errorMessage);
