@@ -81,7 +81,8 @@ export class AuthController {
             },
             response,
             'User registration successful',
-            'Registration failed'
+            'Registration failed',
+            201
         );
     }
 
