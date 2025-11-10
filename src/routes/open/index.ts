@@ -6,7 +6,8 @@ import {
     validateRegister,
     validatePasswordResetRequest,
     validatePasswordReset,
-    validateEmailToken
+    validateEmailToken,
+    checkToken
 } from '@middleware';
 
 const openRoutes: Router = express.Router();
@@ -64,7 +65,7 @@ openRoutes.get('/auth/verify/email/confirm', validateEmailToken, VerificationCon
  * Simple test endpoint (no authentication required)
  * GET /jwt_test
  */
-openRoutes.get('/jwt_test', AuthController.testJWT);
+openRoutes.get('/jwt_test', checkToken, AuthController.testJWT);
 
 // ===== DOCUMENTATION ROUTES =====
 
