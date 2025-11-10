@@ -144,7 +144,7 @@ export const createUser = async (
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Create user error:', error);
-        return response.status(500).json({
+        return response.status(403).json({
             success: false,
             message: 'Failed to create user'
         });
